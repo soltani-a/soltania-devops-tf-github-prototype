@@ -3,6 +3,9 @@
 # Get the current date in the format YYYYMMDD_HHMMSS
 current_date=$(date +"%Y%m%d_%H%M%S")
 
+# Move to the repository
+cd ../terraform
+
 # Format Terraform code
 terraform fmt
 
@@ -14,6 +17,9 @@ terraform plan -out="$current_date.tfplan" -input=false
 
 # Apply the plan with auto-approval and disable input
 terraform apply -auto-approve -input=false "$current_date.tfplan"
+
+# Move to the repository
+cd ../bash
 
 # Archive the plan into a "old" directory
 mkdir -p old
