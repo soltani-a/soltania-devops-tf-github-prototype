@@ -1,26 +1,36 @@
 #!/bin/bash
 
-# Get the current date in the format YYYYMMDD_HHMMSS
+# Save current directory
+START_DIR="$(pwd)"
+
+# Get absolute paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+TERRAFORM_DIR="$PROJECT_ROOT/src/main/terraform"
+
+# Timestamp for plan file
 current_date=$(date +"%Y%m%d_%H%M%S")
 
-# Move to the repository
-cd ../terraform
+echo "[INFO] Project root: $PROJECT_ROOT"
+echo "[INFO] Terraform directory: $TERRAFORM_DIR"
+cd "$TERRAFORM_DIR"
 
-# Format Terraform code
+echo "[INFO] Formatting Terraform files..."
 terraform fmt
 
-# Initialize Terraform without user input
+echo "[INFO] Initializing Terraform..."
 terraform init -input=false
 
-# Run terraform plan and save the plan to a file named YYYYMMDD_HHMMSS.tfplan
+echo "[INFO] Planning Terraform deployment..."
 terraform plan -out="$current_date.tfplan" -input=false
 
-# Apply the plan with auto-approval and disable input
+echo "[INFO] Applying Terraform plan..."
 terraform apply -auto-approve -input=false "$current_date.tfplan"
 
-# Move to the repository
-cd ../bash
-
-# Archive the plan into a "old" directory
+echo "[INFO] Archiving plan..."
 mkdir -p old
 mv "$current_date.tfplan" old/
+
+# Return to starting directory
+cd "$START_DIR"
+echo "[SUCCESS] Deployment complete! Back to $START_DIR"
