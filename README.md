@@ -1,151 +1,188 @@
-# 🚀 soltania-devops-tf-github-prototype
+# 🚀 Soltania DevOps: GitHub Infrastructure as Code
 
-This project automates the creation and management of GitHub repositories using Terraform,  
-with a fully automated workflow powered by a Bash script.
+**Standardizing GitHub Repository Management via Terraform & Automation Wrappers.**
 
----
+This project serves as a **Proof of Concept (PoC)** and a **Template** for managing GitHub organizations via Infrastructure as Code (IaC). It abstracts the complexity of Terraform CLI commands through robust Bash wrappers, ensuring a consistent, secure, and streamlined workflow for DevOps engineers.
 
-## 🔥 Features
-- Provision multiple GitHub repositories with custom descriptions and visibility.
-- Automate `terraform plan` and `terraform apply` with timestamped plan files.
-- Archive Terraform plan files in an `old/` directory for traceability.
-- Clear separation of concerns: Bash automation + Terraform infrastructure as code.
+-----
 
----
+## 🏛️ Architecture & Workflow
+
+This project implements a **GitOps-adjacent workflow**. Changes are defined in code, validated via local scripts, and applied to the GitHub API.
+
+```mermaid
+flowchart TD
+    subgraph "Local Developer Environment"
+        Dev[👱 Architect / DevOps]
+        
+        subgraph "Automation Layer (Scripts)"
+            Wrapper[⚙️ tf_wrapper.sh]
+            Publisher[🚀 publish.sh]
+        end
+        
+        TF[🏗️ Terraform Core]
+    end
+
+    subgraph "Remote Infrastructure"
+        GitHubAPI[☁️ GitHub API]
+        Repo[📦 Target Repositories]
+        GitRemote[🗄️ This Git Repo]
+    end
+
+    Dev -->|1. Define Infra| Wrapper
+    Wrapper -->|fmt / plan / apply| TF
+    TF -->|Provision| GitHubAPI
+    GitHubAPI -->|Create/Update| Repo
+    
+    Dev -->|2. Save Code| Publisher
+    Publisher -->|fmt / commit / push| GitRemote
+```
+
+-----
+
+## 🔥 Key Features
+
+  * **Infrastructure as Code (IaC):** Declarative management of repositories (visibility, description, topics).
+  * **Unified Wrapper (`tf_wrapper.sh`):** A robust interface for Terraform lifecycle (Init, Plan, Apply, Destroy) with error handling and colorized logs.
+  * **Quality Gate (`publish.sh`):** Enforces `terraform fmt` before any commit/push to maintain code standards.
+  * **Security First:** Ephemeral plan files (auto-deleted after apply) to prevent sensitive data leaks.
+  * **Modular Design:** Separates the automation logic (`scripts/`) from the infrastructure definition (`src/main/terraform`).
+
+-----
 
 ## 📂 Project Structure
-```
+
+We follow a clean separation of concerns between **Tooling** and **Source Code**.
+
+```text
 .
-├── src
-│   └── main
-│       ├── bash
-│       │   └── execute_terraform.sh
-│       └── terraform
+├── scripts/
+│   ├── tf_wrapper.sh      # The heavy-lifter: Manages Terraform lifecycle
+│   └── publish.sh         # The gatekeeper: Formats and pushes code
+├── src/
+│   └── main/
+│       └── terraform/     # The IaC definitions
 │           ├── main.tf
 │           ├── output.tf
 │           ├── provider.tf
 │           └── variable.tf
+├── .gitignore
+└── README.md
 ```
 
----
+-----
 
 ## ⚙️ Prerequisites
-- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.5
-- [Bash](https://www.gnu.org/software/bash/) >= 4.0
-- A **GitHub Personal Access Token (PAT)** with the following permissions:
-  - `repo`
-  - `admin:repo_hook`
 
----
+  * [Terraform](https://developer.hashicorp.com/terraform/downloads) \>= 1.5
+  * [Bash](https://www.gnu.org/software/bash/) \>= 4.0
+  * **GitHub Personal Access Token (PAT)** (Classic)
 
-## 🔑 Setting Up GITHUB_TOKEN
+-----
 
-### 1. Generate a GitHub Personal Access Token
-1. Go to [GitHub → Settings → Developer settings → Personal access tokens](https://github.com/settings/tokens).
-2. Click **"Generate new token (classic)"**.
-3. Select:
-   - `repo` (Full control of private repositories)
-   - `admin:repo_hook` (Full control of repository hooks)
-4. Set an expiration date for security.
-5. Copy the token.
+## 🔑 Setup & Configuration
 
----
+### 1\. Configure Credentials
 
-### 2. Export the Token as an Environment Variable
-Run the following commands in your terminal:
+To interact with the GitHub API, you must export your PAT as an environment variable.
+
 ```bash
-export GITHUB_TOKEN="your_personal_access_token"
-export GITHUB_OWNER="your_github_user_or_org"
+# Add to your ~/.bashrc or ~/.zshrc
+export GITHUB_TOKEN="ghp_your_secure_token_here"
+export GITHUB_OWNER="your_github_username_or_org"
 ```
 
-To make it persistent, add the lines to your shell profile:
-```bash
-echo 'export GITHUB_TOKEN="your_personal_access_token"' >> ~/.bashrc
-echo 'export GITHUB_OWNER="your_github_user_or_org"' >> ~/.bashrc
-source ~/.bashrc
-```
+> **Security Note:** Never hardcode these values in `provider.tf`. This project relies on the GitHub Provider automatically reading `GITHUB_TOKEN` from the environment.
 
----
+### 2\. Clone & Prepare
 
-### 3. Verify the Token
-To confirm the token is correctly set:
-```bash
-echo $GITHUB_TOKEN
-```
-You should see your token (or at least part of it) printed.
-
----
-
-## 🚀 Getting Started
-
-Clone the repository:
 ```bash
 git clone https://github.com/your_username/soltania-devops-tf-github-prototype.git
-cd soltania-devops-tf-github-prototype/src/main/bash
+cd soltania-devops-tf-github-prototype
+
+# Make scripts executable
+chmod +x scripts/*.sh
 ```
 
-Make the script executable and run it:
+-----
+
+## 🚀 Usage Guide
+
+### 1\. Managing Infrastructure (`tf_wrapper.sh`)
+
+Use the wrapper to manage the lifecycle of your repositories.
+
+| Command | Description |
+| :--- | :--- |
+| `./scripts/tf_wrapper.sh plan` | **Safe Mode.** Formats code, inits (if needed), and shows what *will* change. |
+| `./scripts/tf_wrapper.sh apply` | **Action Mode.** Applies the changes to GitHub. Auto-detects if a plan exists. |
+| `./scripts/tf_wrapper.sh destroy` | **Cleanup Mode.** Removes all resources managed by this project. |
+| `./scripts/tf_wrapper.sh fmt` | **Maintenance.** Recursively formats Terraform files. |
+
+**Example:**
+
 ```bash
-chmod +x execute_terraform.sh
-./execute_terraform.sh
+# Preview changes
+./scripts/tf_wrapper.sh plan
+
+# Apply changes
+./scripts/tf_wrapper.sh apply
 ```
 
-Terraform will:
-1. Format the code
-2. Initialize providers
-3. Generate a timestamped plan file
-4. Apply the plan automatically
-5. Archive the plan file
+### 2\. Development Workflow (`publish.sh`)
 
----
+When you are ready to save your work to this repository, **do not use standard git commands**. Use the publisher script to ensure quality.
+
+```bash
+./scripts/publish.sh
+```
+
+  * ✅ Automatically runs `terraform fmt`.
+  * ✅ Checks if there are changes.
+  * ✅ Prompts for a commit message.
+  * ✅ Pushes to the current branch.
+
+-----
 
 ## 🛠️ Customization
 
-Edit `variable.tf` to define your repositories:
+To add or modify repositories, edit **`src/main/terraform/variable.tf`**. We use a **Map** structure to allow scalable definitions.
+
 ```hcl
 variable "repositories" {
+  description = "Map of repositories to provision"
+  type = map(object({
+    description = string
+    visibility  = string
+  }))
+
   default = {
-    "demo_repo" = {
-      description = "Demo repository created with Terraform"
+    # Add your new repo here
+    "soltania-microservice-demo" = {
+      description = "A demo microservice for the portfolio"
       visibility  = "public"
+    },
+    "internal-tooling" = {
+      description = "Private scripts for DevOps team"
+      visibility  = "private"
     }
   }
 }
 ```
 
----
+-----
 
-## 🧩 Architecture Diagram
-```mermaid
-flowchart TD
-    Dev[Developer] -->|Run Script| Bash[execute_terraform.sh]
-    Bash --> Terraform[Terraform CLI]
-    Terraform --> GitHubAPI[GitHub Provider]
-    GitHubAPI --> Repo[GitHub Repositories]
-```
+## 💡 Roadmap & Future Enhancements
 
----
+As part of the **Slim Soltani Technical Portfolio**, this project evolves constantly.
 
-## 🔒 Security Best Practices
-- Never commit your `GITHUB_TOKEN`.
-- Add `.terraform/`, `*.tfstate`, and `*.tfplan` to `.gitignore`.
-- Use Terraform Cloud or a secure backend for production environments.
+  * [ ] **Migration to OpenTofu:** Validate the drop-in replacement capability of OpenTofu.
+  * [ ] **CI/CD Integration:** Move the `tf_wrapper` logic into a GitHub Actions Pipeline.
+  * [ ] **Branch Protection:** Automate branch protection rules (requires GitHub Pro/Team for private repos).
+  * [ ] **Drift Detection:** Scheduled jobs to detect manual changes in the console.
 
----
-
-## 🏷️ Badges
-![Terraform](https://img.shields.io/badge/Terraform-v1.5+-623CE4?logo=terraform)
-![GitHub](https://img.shields.io/badge/GitHub-API-181717?logo=github)
-![License](https://img.shields.io/badge/License-MIT-green)
-
----
+-----
 
 ## 📜 License
-This project is licensed under the [MIT License](LICENSE).
 
----
-
-## 💡 Future Enhancements
-- Add GitHub Actions CI for `terraform fmt` and `terraform validate`
-- Support multiple GitHub organizations
-- Include examples for advanced configurations
+This project is licensed under the [MIT License](https://www.google.com/search?q=LICENSE).
