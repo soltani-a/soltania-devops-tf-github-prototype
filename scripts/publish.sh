@@ -11,7 +11,7 @@ set -euo pipefail
 # --- Configuration ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-TERRAFORM_DIR="$PROJECT_ROOT/src/main/terraform"
+TERRAFORM_DIR="$PROJECT_ROOT/terraform"
 
 # --- Colors ---
 GREEN='\033[0;32m'
