@@ -1,0 +1,60 @@
+name: "Terraform Quality & Drift"
+
+on:
+  pull_request:
+  schedule:
+    - cron: '0 8 * * *' # Every day at 8am (Drift Detection)
+
+jobs:
+  quality:
+    name: "Static Analysis & Security"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check Formatting
+        run: terraform fmt -check
+
+      - name: Install TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Run TFLint
+        run: tflint --init && tflint
+
+      - name: Run TFSec (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          hide-progress: true
+          exit-code: '1' # Fail pipeline if vulnerabilities found
+          ignore-unfixed: true
+
+  drift_detection:
+    name: "Drift Detection"
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_PAT_TOKEN }} # Token admin required
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: hashicorp/setup-terraform@v3
+      
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Check for Drift
+        id: plan
+        # -detailed-exitcode returns 2 if there is a diff (drift)
+        run: |
+          terraform plan -detailed-exitcode -no-color
+        continue-on-error: true
+
+      - name: Alert on Drift
+        if: steps.plan.outputs.exitcode == 2
+        run: |
+          echo "::error::Drift detected! The infrastructure does not match the Terraform code."
+          # Ici vous pouvez envoyer une notif Slack/Teams ou ouvrir une Issue

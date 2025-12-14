@@ -48,5 +48,13 @@ variable "repositories" {
       homepage_url = "https://www.soltania-technology.com" # Ou votre LinkedIn si le site n'est pas prêt
       visibility   = "public"
     }
+
+    # Repo 6 : SecOps Vault (Configuration as Code)
+    "soltania-vault-governance" = {
+      description  = "🔐 SecOps Showcase: Configuration as Code for HashiCorp Vault. Manages Policies, AppRoles, and Secret Engines using Terraform with a variable-driven approach."
+      topics       = ["vault", "secops", "terraform", "configuration-as-code", "security", "access-management", "identity-management"]
+      visibility   = "public"
+      homepage_url = "https://www.soltania-technology.com"
+    }
   }
 }

@@ -1,0 +1,60 @@
+formatter: markdown table
+
+header-from: main.tf
+content: |-
+  # Repository Factory
+
+  This module manages the creation and governance of GitHub repositories.
+
+  {{ .Requirements }}
+
+  {{ .Providers }}
+
+  {{ .Resources }}
+
+  {{ .Inputs }}
+
+  {{ .Outputs }}
+
+output:
+  file: README.md
+  mode: inject
+  template: |-
+    {{ .Content }}
+    ```
+
+2.  **Utilisation** :
+    * Installez l'outil (via brew ou binary).
+    * Lancez : `terraform-docs markdown table . --output-file README.md`
+    * Ou via un hook `pre-commit` (voir section 4).
+
+---
+
+### 3. Le Tagging (Topics vs Tags)
+
+Dans l'écosystème GitHub, le concept de "Key-Value Tags" (comme sur AWS/Azure) n'existe pas vraiment sur les repos. L'équivalent est les **Topics** (des étiquettes simples).
+
+Cependant, pour une gestion "Enterprise", je vous recommande d'imposer des **Topics Standards** automatiquement, en plus de ceux définis par l'utilisateur.
+
+**Modification proposée dans `main.tf` :**
+
+```hcl
+locals {
+  # Standard tags enforced on all repositories
+  standard_topics = ["terraform-managed", "governance-strict"]
+}
+
+resource "github_repository" "repos" {
+  for_each = var.repositories
+
+  name = each.key
+  # ... (autres propriétés)
+
+  # Merge user topics with mandatory standard topics
+  topics = distinct(concat(
+    coalesce(each.value.topics, []),
+    local.standard_topics
+  ))
+  
+  # ...
+}

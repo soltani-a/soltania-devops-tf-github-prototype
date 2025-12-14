@@ -91,7 +91,39 @@ main() {
                 terraform fmt -recursive
                 log_success "Formatting complete."
                 ;;
-                
+            
+            lint)
+                log_info "Running TFLint..."
+                tflint --init
+                tflint --recursive
+                log_success "Linting passed."
+                ;;
+
+            security)
+                log_info "Running TFSec security scan..."
+                tfsec .
+                log_success "Security scan passed."
+                ;;
+
+            validate)
+                log_info "Validating configuration syntax..."
+                # Initialize backend only if not already done, as validate requires plugins
+                if [ ! -d ".terraform" ]; then
+                    terraform init -backend=false
+                fi
+                terraform validate
+                log_success "Configuration is valid."
+                ;;
+
+            test)
+                log_info "Running native Terraform tests..."
+                # Requires Terraform v1.6+
+                # We ensure init is done because tests run against real providers or mocks
+                terraform init -input=false
+                terraform test
+                log_success "All tests passed successfully."
+                ;;
+            
             init)
                 log_info "Initializing backend and providers..."
                 terraform init -upgrade
